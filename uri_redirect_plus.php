@@ -11,6 +11,10 @@ $thisfile=basename(__FILE__, '.php');
 $uriRedirectFile=GSDATAOTHERPATH .'uri_redirect_plus_settings.xml';
 $pluginVersion = '0.2.2';
 
+# Multilingual support by language only, not country ('en' not 'en_US')
+global $LANG;
+i18n_merge('uri_redirect_plus', substr($LANG,0,2)) || i18n_merge('uri_redirect_plus','en');
+
 # register plugin
 register_plugin(
 	$thisfile,                      # ID of plugin, should be filename minus php
@@ -25,10 +29,6 @@ register_plugin(
 
 $max_length_external_display = 38;
 $truncation_string = '…';
-
-# Multilingual support by language only, not country ('en' not 'en_US')
-global $LANG;
-i18n_merge('uri_redirect_plus', substr($LANG,0,2)) || i18n_merge('uri_redirect_plus','en');
 
 # hooks
 add_action('pages-sidebar','createSideMenu',array($thisfile,i18n_r('uri_redirect_plus/URI_REDIRECT_PLUS_SIDEMENU')));
