@@ -13,3 +13,9 @@ Note: For space reasons, long external destination URLs have their HTTP and WWW 
 
 ## Earlier versions
 This plugin is a successor to the no-longer-updated [original URI Redirect plugin](http://get-simple.info/extend/plugin/uri-redirect/150/) by Nathan Friemel (NathanF). Version numbering is continuing from where that earlier plugin left off (version 0.2.1).
+
+## Installation
+* Install required [I18N plugin](http://get-simple.info/extend/plugin/i18n/69/), if necessary.
+* Unzip and upload the uri-redirect-plus folder and corresponding  uri-redirect-plus.php file into your GetSimple plugins folder. 
+* Activate the plugin on the admin Plugins tab.
+* Add redirects via the link on the side menu of the admin Pages tab.
