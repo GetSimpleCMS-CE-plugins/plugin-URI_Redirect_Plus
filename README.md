@@ -1,6 +1,11 @@
 # GetSimple - URI Redirect Plus
 GetSimple CMS plugin. Redirect URIs to internal or external pages (with '301 Moved Permanently' header). Also view the count and date of last redirection for each redirect.
 
+## Version 0.2.3 Changes
+* Fixed an error where redirects to internal pages were created incorrectly if the page title had a colon
+* When redirecting (or listing links to internal pages in the Existing Redirects table), URLs now conforms to the site's custom permalink setting (i.e., parent(s) and trailing slash after slug are included if appropriate)
+* Added a redirect creation date to the XML (though it's not displayed in the Existing Redirects table)
+
 ## Version 0.2.2 Changes
 * Imports redirect list from predecessor plugin on initial view, if available (see Earlier Versions)
 * Select drop box for internal pages now sorts by parent then page title
