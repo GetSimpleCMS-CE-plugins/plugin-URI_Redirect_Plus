@@ -2,14 +2,14 @@
 /*
 Plugin Name: URI Redirect Plus
 Description: Redirect URIs to internal or external pages (with '301 Moved Permanently' header). Also view the count and date of last redirection for each redirect.
-Version: 0.2.2
+Version: 0.2.3
 Author: Jared Lyon (based on original code from Nathan Friemel)
 */
 
 # get correct id for plugin
 $thisfile=basename(__FILE__, '.php');
 $uriRedirectFile=GSDATAOTHERPATH .'uri_redirect_plus_settings.xml';
-$pluginVersion = '0.2.2';
+$pluginVersion = '0.2.3';
 
 # Multilingual support by language only, not country ('en' not 'en_US')
 global $LANG;
@@ -19,7 +19,7 @@ i18n_merge('uri_redirect_plus', substr($LANG,0,2)) || i18n_merge('uri_redirect_p
 register_plugin(
 	$thisfile,                      # ID of plugin, should be filename minus php
 	'URI Redirect Plus',            # Title of plugin
-	'0.2.2',                        # Version of plugin
+	$pluginVersion,                 # Version of plugin
 	'Jared Lyon',                   # Author of plugin
 	'http://github.com/jlyon1515',  # Author URL
 	i18n_r('uri_redirect_plus/PLUGIN_DESCRIPTION'), 	# Plugin Description
@@ -27,6 +27,7 @@ register_plugin(
 	'uri_redirect_show'             # Function that displays content
 );
 
+$websiteSettingsFile=GSDATAOTHERPATH .'website.xml';
 $max_length_external_display = 38;
 $truncation_string = '…';
 
@@ -42,7 +43,7 @@ add_action('index-pretemplate','do_uri_redirect');
  * and display table of current redirects</p>
  */
 function uri_redirect_show(){
-	global $uriRedirectFile, $success, $error, $SITEURL, $truncation_string, $max_length_external_display;
+	global $uriRedirectFile, $websiteSettingsFile, $success, $error, $SITEURL, $truncation_string, $max_length_external_display;
 
 	checkVersion();
 	
@@ -61,6 +62,12 @@ function uri_redirect_show(){
 		$xml->asXML($uriRedirectFile);
 		$xml_settings = simplexml_load_file($uriRedirectFile);
 	}
+    
+    //Get website settings file (to get Permalink configuration)
+	if (file_exists($websiteSettingsFile)) {
+		$website_settings = simplexml_load_file($websiteSettingsFile);
+	}
+    else { $website_settings = array(); }
 	
 	// submitted form
 	if (isset($_POST['submit'])) {
@@ -78,7 +85,7 @@ function uri_redirect_show(){
 				}
 			}
 			else{
-				$redirect_page = explode(':', $_POST['redirect_page']);
+				$redirect_page = explode('|||', $_POST['redirect_page']);
 				$redirect_page_title = $redirect_page[0];
 				$redirect_page_url = $redirect_page[1];
 				$redirect_page_parent = $redirect_page[2];
@@ -88,6 +95,8 @@ function uri_redirect_show(){
 			$error .= i18n_r('uri_redirect_plus/NO_REDIRECT_ADDED');
 		}
 		
+        // Need to do a check to see if "from redirect" already exists
+        
 		// if there are no errors, save data
 		if (!$error) {
 			$uri = $xml_settings->addChild('uri');
@@ -96,6 +105,7 @@ function uri_redirect_show(){
 			$uri->addChild('redirect_page_title', $redirect_page_title);
 			$uri->addChild('redirect_page_url', $redirect_page_url);
 			$uri->addChild('redirect_page_parent', $redirect_page_parent);
+            $uri->addChild('date_created', date('M j, Y g:ia') );
 			$uri->addChild('redirect_count', '0');
 			$uri->addChild('last_accessed', i18n('uri_redirect_plus/NEVER'));
 			
@@ -180,9 +190,13 @@ function uri_redirect_show(){
 					}
 					echo '<a href="'.$a_setting->redirect_page_url.'" title="'.$a_setting->redirect_page_url.'">'. $truncated .'</a>';
 				}
-				// Else internal URL
+				// Else internal URL (written in same style as site's custom permalink setting)
 				else{
-					echo '<a href="'.$SITEURL. stripcslashes($a_setting->redirect_page_url).'">'. stripcslashes($a_setting->redirect_page_url) .'</a>';	
+                    $sitepermalink = $website_settings->PERMALINK;
+                    $sitepermalink = str_replace('%parents%','%parent%',$sitepermalink);
+                    $sitepermalink = str_replace('%parent%', stripcslashes($a_setting->redirect_page_parent), $sitepermalink);
+                    $sitepermalink = str_replace('%slug%', stripcslashes($a_setting->redirect_page_url), $sitepermalink);
+                    echo '<a href="'. $SITEURL . $sitepermalink .'">'. stripcslashes($a_setting->redirect_page_url) .'</a>';	
 				} ?></td>
 				<td><?php if(isset($a_setting->redirect_count)) echo $a_setting->redirect_count; else echo '0'; ?></td>
 				<td><?php if(isset($a_setting->last_accessed) && trim($a_setting->last_accessed) != '' && $a_setting->last_accessed != 'Never') echo $a_setting->last_accessed; else i18n('uri_redirect_plus/NEVER'); ?></td>
@@ -262,7 +276,7 @@ function uri_pages_options(){
 	
 	$options = '<option value="">-'. i18n_r('uri_redirect_plus/SELECT_PAGE') .'-</option>';
 	foreach ($pagesSorted as $page) {
-		$options .= '<option value="' . $page[title] . ':' . $page[url] . ':' . $page[parent] . '">';
+		$options .= '<option value="' . $page[title] . '|||' . $page[url] . '|||' . $page[parent] . '">';
 		if ($page['parent'] != '') {
 			$options .= $page[parent];
 		}
@@ -279,7 +293,7 @@ function uri_pages_options(){
  * to the provided page</p>
  */
 function do_uri_redirect(){
-	global $uriRedirectFile, $SITEURL;
+	global $uriRedirectFile, $websiteSettingsFile, $SITEURL;
 
 	if (file_exists($uriRedirectFile)) {
 		$xml_settings = simplexml_load_file($uriRedirectFile);
@@ -326,12 +340,26 @@ function do_uri_redirect(){
 					die();
 				}
 				// Else must be redirecting to internal page
-				else{				
-					$link = $subFolder . '/';
+				else{
+                    
+                    // Get as site's custom permalink setting, and write URL to be redirected to in that style
+                    $sitepermalink = $website_settings->PERMALINK;
+                    $sitepermalink = str_replace('%parents%','%parent%',$sitepermalink);
+                    $sitepermalink = str_replace('%parent%', stripcslashes($a_setting->redirect_page_parent), $sitepermalink);
+                    $sitepermalink = str_replace('%slug%', stripcslashes($a_setting->redirect_page_url), $sitepermalink);	
+                    // If %parent% wasn't rewritten in the permalink, then a parent wasn't set for some reason, so remove that text
+                    if(strpos($sitepermalink, '%parent%') !== false){
+                        $sitepermalink = str_replace('%parent%','',$sitepermalink);
+                    }
+                    
+					$link = $subFolder .'/'. $sitepermalink;
+                    //Just in case and double slashes exist, replace them with a single one
+                    $link = str_replace('//','/',$link);
+                    
 					if ($a_setting->redirect_page_parent != '') {
 						$link .= $a_setting->redirect_page_parent . '/';
 					}
-					//Need to write code to check if GetSimple's Custom permalink structure is set to have a trailing slash, fo now, assuming it doesn't
+					//Need to write code to check if GetSimple's Custom permalink structure is set to have a trailing slash, for now, assuming it doesn't
 					$link .= $a_setting->redirect_page_url . '';
 	
 					header ('HTTP/1.1 301 Moved Permanently');
@@ -362,7 +390,7 @@ function checkVersion(){
 	global $pluginVersion;
 	
 	$c = curl_init();
-	curl_setopt($c, CURLOPT_URL, 'http://get-simple.info/api/extend/?id=150');
+	curl_setopt($c, CURLOPT_URL, 'http://get-simple.info/api/extend/?id=1062');
 	curl_setopt($c, CURLOPT_RETURNTRANSFER, TRUE);
 	$checkVersion = json_decode(curl_exec($c), true);
 	curl_close($c);
