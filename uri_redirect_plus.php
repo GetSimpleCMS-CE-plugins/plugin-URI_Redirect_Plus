@@ -2,14 +2,14 @@
 /*
 Plugin Name: URI Redirect Plus
 Description: Redirect URIs to internal or external pages (with '301 Moved Permanently' header). Also view the count and date of last redirection for each redirect.
-Version: 0.2.3
+Version: 0.2.4
 Author: Jared Lyon (based on original code from Nathan Friemel)
 */
 
 # get correct id for plugin
 $thisfile=basename(__FILE__, '.php');
 $uriRedirectFile=GSDATAOTHERPATH .'uri_redirect_plus_settings.xml';
-$pluginVersion = '0.2.3';
+$pluginVersion = '0.2.4';
 
 # Multilingual support by language only, not country ('en' not 'en_US')
 global $LANG;
@@ -269,18 +269,18 @@ function uri_pages_options(){
 		}
 	}
 	
+	
 	// Sort the pagesArray by the 'sort' key created above
 	$pagesSorted = subval_sort($pagesArray,'sort');
 	
 	//Need to sort by title within each parent here.
-	
 	$options = '<option value="">-'. i18n_r('uri_redirect_plus/SELECT_PAGE') .'-</option>';
 	foreach ($pagesSorted as $page) {
-		$options .= '<option value="' . $page[title] . '|||' . $page[url] . '|||' . $page[parent] . '">';
+		$options .= '<option value="' . $page['title'] . '|||' . $page['url'] . '|||' . $page['parent'] . '">';
 		if ($page['parent'] != '') {
-			$options .= $page[parent];
+			$options .= $page['parent'];
 		}
-		$options .=  ' - '. $page[title] . '</option>';
+		$options .=  ' - '. $page['title'] . '</option>';
 	}
 	echo $options;
 }
