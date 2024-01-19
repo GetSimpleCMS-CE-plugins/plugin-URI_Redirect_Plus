@@ -1,6 +1,9 @@
 # GetSimple - URI Redirect Plus
 GetSimple CMS plugin. Redirect URIs to internal or external pages (with '301 Moved Permanently' header). Also view the count and date of last redirection for each redirect.
 
+## Version 0.2.4 Changes
+* Adding support for PHP 8. Fixed some associative array keys in the script that lacked quotation marks. PHP7 would assume the key should be quoted, and the script worked. PHP8 no longer made that assumption, so the script would break until the keys were put in quotes.
+
 ## Version 0.2.3 Changes
 * Fixed an error where redirects to internal pages were created incorrectly if the page title had a colon
 * When redirecting (or listing links to internal pages in the Existing Redirects table), URLs now conforms to the site's custom permalink setting (i.e., parent(s) and trailing slash after slug are included if appropriate)
